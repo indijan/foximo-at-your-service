@@ -10,6 +10,8 @@ type ComplimentRow = {
   thank_count: number;
 };
 
+const SITE_URL = "https://www.foximoatyourservice.today/";
+
 export default function Home() {
   const [userName, setUserName] = useState("");
   const [isNameSet, setIsNameSet] = useState(false);
@@ -27,6 +29,41 @@ export default function Home() {
   const [recipientName, setRecipientName] = useState("");
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const [shareError, setShareError] = useState<string | null>(null);
+
+  // Parallax háttérhez offset
+  const [parallaxOffset, setParallaxOffset] = useState({ x: 0, y: 0 });
+
+  // Hangeffektek
+  const [soundPraise, setSoundPraise] = useState<HTMLAudioElement | null>(null);
+  const [soundThank, setSoundThank] = useState<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    function handleMouseMove(e: MouseEvent) {
+      const xRatio = e.clientX / window.innerWidth - 0.5;
+      const yRatio = e.clientY / window.innerHeight - 0.5;
+      setParallaxOffset({
+        x: xRatio * 40,
+        y: yRatio * 40,
+      });
+    }
+
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
+
+  // Hangeffektek inicializálása
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const praise = new Audio("/sounds/praise.mp3");
+    const thank = new Audio("/sounds/thank.mp3");
+
+    praise.volume = 0.6;
+    thank.volume = 0.6;
+
+    setSoundPraise(praise);
+    setSoundThank(thank);
+  }, []);
 
   // Név + állapot + „praised” számláló betöltése
   useEffect(() => {
@@ -78,7 +115,7 @@ export default function Home() {
     loadCompliments();
   }, []);
 
-  // Session praise count mentése (reload túlél, tab bezárás nem)
+  // Session praise count mentése (tab bezárásig él)
   useEffect(() => {
     if (typeof window === "undefined") return;
     window.sessionStorage.setItem(
@@ -117,9 +154,25 @@ export default function Home() {
     return text.replace("{name}", name);
   }
 
+  // Küldéshez: a címzett neve kerüljön a szövegbe
+  function formatForShare(text: string) {
+    const rName = recipientName.trim();
+    const nameForShare = rName || "you";
+    return text.replace("{name}", nameForShare);
+  }
+
   async function handleThankYou(id: number) {
     setErrorMessage(null);
     setUpdatingId(id);
+
+    if (soundThank) {
+      try {
+        soundThank.currentTime = 0;
+        await soundThank.play();
+      } catch {
+        // ignore
+      }
+    }
 
     const compliment = compliments.find((c) => c.id === id);
     if (!compliment) {
@@ -167,8 +220,16 @@ export default function Home() {
   function handleRequestPraise() {
     if (compliments.length === 0) return;
 
-    setThankReply(null);
+    if (soundPraise) {
+      try {
+        soundPraise.currentTime = 0;
+        soundPraise.play();
+      } catch {
+        // ignore
+      }
+    }
 
+    setThankReply(null);
     setSessionPraiseCount((prev) => prev + 1);
 
     setCurrentIndex((prevIndex) => {
@@ -199,13 +260,24 @@ export default function Home() {
   function buildShareText() {
     const baseName = recipientName.trim() || "you";
     const praiseText =
-      activeCompliment ? formatWithName(activeCompliment.text) : "";
+      activeCompliment ? formatForShare(activeCompliment.text) : "";
+
     return (
-      `Foximo the Courtier sends this praise to ${baseName}:\n\n` +
-      `"${praiseText}"\n\n` +
-      `Try Foximo: https://your-foximo-site.com`
+      `🦊 A royal praise from Foximo the Courtier\n\n` +
+      `For ${baseName}:\n` +
+      `“${praiseText}”\n\n` +
+      `Receive more courtly compliments here:\n` +
+      `${SITE_URL}`
     );
   }
+
+  const primaryButtonHover = {
+    transform: "translateY(-1px) scale(1.02)",
+    boxShadow: "0 8px 18px rgba(15,23,42,0.25)",
+  };
+
+  // 🔸 Közös megjelenítendő név mindenhez
+  const displayName = userName.trim() || "Your Grace";
 
   return (
     <main
@@ -216,8 +288,50 @@ export default function Home() {
         background:
           "radial-gradient(circle at top, #020617 0, #020617 40%, #0b1120 100%)",
         color: "#e5e7eb",
+        position: "relative",
+        overflow: "hidden",
       }}
     >
+      {/* Parallax háttér elemek */}
+      <div
+        style={{
+          position: "fixed",
+          top: "-80px",
+          left: "-120px",
+          width: "260px",
+          height: "260px",
+          borderRadius: "999px",
+          background:
+            "radial-gradient(circle at center, rgba(250,204,21,0.45), rgba(248,113,113,0))",
+          filter: "blur(4px)",
+          opacity: 0.85,
+          transform: `translate3d(${parallaxOffset.x * 0.6}px, ${
+            parallaxOffset.y * 0.6
+          }px, 0)`,
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      />
+      <div
+        style={{
+          position: "fixed",
+          bottom: "-120px",
+          right: "-80px",
+          width: "320px",
+          height: "320px",
+          borderRadius: "999px",
+          background:
+            "radial-gradient(circle at center, rgba(59,130,246,0.35), rgba(56,189,248,0))",
+          filter: "blur(6px)",
+          opacity: 0.9,
+          transform: `translate3d(${-parallaxOffset.x * 0.4}px, ${
+            -parallaxOffset.y * 0.4
+          }px, 0)`,
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      />
+
       <div
         style={{
           maxWidth: "960px",
@@ -225,6 +339,8 @@ export default function Home() {
           padding: "0 1rem",
           width: "100%",
           boxSizing: "border-box",
+          position: "relative",
+          zIndex: 1,
         }}
       >
         <div
@@ -277,60 +393,6 @@ export default function Home() {
                 Your humble digital courtier, ever ready to bow, flatter, and
                 sprinkle a little royal joy upon Your Grace&apos;s day.
               </p>
-
-              {/* Ko-fi */}
-              <div
-                style={{
-                  marginTop: "1rem",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "0.4rem",
-                  alignItems: "center",
-                }}
-              >
-                <a
-                  href="https://ko-fi.com/YOUR_KOFI_PAGE"
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{
-                    padding: "0.5rem 1rem",
-                    borderRadius: "999px",
-                    border: "none",
-                    cursor: "pointer",
-                    background:
-                      "linear-gradient(135deg, #22c55e, #16a34a)",
-                    color: "white",
-                    fontSize: "0.9rem",
-                    fontWeight: 600,
-                    boxShadow: "0 6px 14px rgba(22,163,74,0.35)",
-                    textDecoration: "none",
-                  }}
-                >
-                  Offer alms on Ko-fi
-                </a>
-                <span
-                  style={{
-                    fontSize: "0.8rem",
-                    color: "#6b7280",
-                  }}
-                >
-                  A small token keeps Foximo&apos;s feather fabulous.
-                </span>
-              </div>
-
-              {/* Toplist link */}
-              <a
-                href="/top"
-                style={{
-                  display: "inline-block",
-                  marginTop: "0.8rem",
-                  fontSize: "0.9rem",
-                  color: "#4f46e5",
-                  textDecoration: "underline",
-                }}
-              >
-                View Foximo&apos;s royal Top 10 →
-              </a>
             </div>
           </section>
 
@@ -405,6 +467,7 @@ export default function Home() {
                     borderRadius: "999px",
                     border: "1px solid #d1d5db",
                     fontSize: "0.95rem",
+                    boxSizing: "border-box",
                   }}
                 />
                 <button
@@ -421,8 +484,20 @@ export default function Home() {
                     fontWeight: 600,
                     boxShadow: "0 6px 14px rgba(55,48,163,0.35)",
                   }}
+                  onMouseEnter={(e) => {
+                    Object.assign(
+                      (e.currentTarget as HTMLButtonElement).style,
+                      primaryButtonHover
+                    );
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.transform =
+                      "translateY(0) scale(1)";
+                    (e.currentTarget as HTMLButtonElement).style.boxShadow =
+                      "0 6px 14px rgba(55,48,163,0.35)";
+                  }}
                 >
-                  Let Foximo address me properly
+                  🎩 Let Foximo address me properly
                 </button>
               </form>
             </section>
@@ -444,7 +519,15 @@ export default function Home() {
                     color: "#111827",
                   }}
                 >
-                  Courtly Praise for {userName.trim() || "Your Grace"}
+                  Courtly Praise for{" "}
+                  <span
+                    style={{
+                      fontWeight: 700,
+                      color: "#b45309",
+                    }}
+                  >
+                    {displayName}
+                  </span>
                 </h2>
                 <p
                   style={{
@@ -453,8 +536,7 @@ export default function Home() {
                     marginBottom: "0.5rem",
                   }}
                 >
-                  Foximo stands ready to deliver a fresh praise at Your
-                  command.
+                  Foximo stands ready to deliver a fresh praise at Your command.
                 </p>
               </div>
 
@@ -480,32 +562,104 @@ export default function Home() {
                 </p>
               )}
 
-              {/* Aktív bók box – a request gomb FELETT */}
+              {/* Aktív bók box – kiemelve */}
               {!loading && activeCompliment && (
                 <div
                   style={{
-                    maxWidth: "560px",
+                    maxWidth: "580px",
                     margin: "1.5rem auto 1.5rem",
                   }}
                 >
                   <article
+                    key={`${activeCompliment.id}-${sessionPraiseCount}`}
                     style={{
-                      borderRadius: "16px",
-                      border: "1px solid #e5e7eb",
-                      padding: "1.25rem",
-                      boxShadow: "0 8px 20px rgba(15,23,42,0.06)",
+                      position: "relative",
+                      borderRadius: "18px",
+                      border: "2px solid #fbbf24",
+                      padding: "1.35rem 1.25rem 1.8rem", // alul több hely a rókának
+                      paddingRight: "7rem", // hely a rókának jobb oldalt
+                      boxShadow: "0 14px 32px rgba(15,23,42,0.18)",
                       background:
                         "radial-gradient(circle at top left, #fef3c7 0, #ffffff 45%, #f9fafb 100%)",
+                      animation: "fadeInUp 380ms ease-out",
+                      overflow: "hidden",
                     }}
                   >
-                    <p
+                    <div
                       style={{
-                        fontSize: "0.98rem",
-                        color: "#374151",
-                        marginBottom: "1rem",
+                        position: "absolute",
+                        top: "0.35rem",
+                        left: "1.2rem",
+                        padding: "0.15rem 0.55rem",
+                        borderRadius: "999px",
+                        background: "#fbbf24",
+                        color: "#78350f",
+                        fontSize: "0.75rem",
+                        fontWeight: 600,
+                        boxShadow: "0 4px 10px rgba(180,83,9,0.4)",
                       }}
                     >
-                      {formatWithName(activeCompliment.text)}
+                      Today&apos;s praise
+                    </div>
+
+                    <p
+                      style={{
+                        fontSize: "1.05rem",
+                        color: "#78350f",
+                        marginTop: "1.4rem",
+                        marginBottom: "1rem",
+                        lineHeight: 1.6,
+                        fontWeight: 500,
+                      }}
+                    >
+                      {(() => {
+                        const full = formatWithName(activeCompliment.text);
+                        const highlightedName = displayName;
+
+                        if (!full.includes(highlightedName)) {
+                          return <>“{full}”</>;
+                        }
+
+                        const parts = full.split(highlightedName);
+
+                        return (
+                          <>
+                            {/* Nyitó idézőjel */}
+                            <span
+                              style={{
+                                fontSize: "1.2rem",
+                                marginRight: "0.15rem",
+                              }}
+                            >
+                              “
+                            </span>
+                            {parts.map((part, idx) => (
+                              <React.Fragment key={idx}>
+                                {part}
+                                {idx < parts.length - 1 && (
+                                  <span
+                                    style={{
+                                      fontWeight: 700,
+                                      color: "#b45309",
+                                    }}
+                                  >
+                                    {highlightedName}
+                                  </span>
+                                )}
+                              </React.Fragment>
+                            ))}
+                            {/* Záró idézőjel */}
+                            <span
+                              style={{
+                                fontSize: "1.2rem",
+                                marginLeft: "0.15rem",
+                              }}
+                            >
+                              ”
+                            </span>
+                          </>
+                        );
+                      })()}
                     </p>
 
                     <div
@@ -530,17 +684,31 @@ export default function Home() {
                           opacity:
                             updatingId === activeCompliment.id ? 0.7 : 1,
                           background:
-                            "linear-gradient(135deg, #fbbf24, #f97316)",
+                            "linear-gradient(135deg, #f97316, #fb923c)",
                           color: "white",
                           fontSize: "0.9rem",
                           fontWeight: 600,
-                          boxShadow:
-                            "0 6px 14px rgba(194,65,12,0.35)",
+                          boxShadow: "0 6px 14px rgba(194,65,12,0.35)",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "0.35rem",
+                        }}
+                        onMouseEnter={(e) => {
+                          Object.assign(
+                            (e.currentTarget as HTMLButtonElement).style,
+                            primaryButtonHover
+                          );
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.currentTarget as HTMLButtonElement).style.transform =
+                            "translateY(0) scale(1)";
+                          (e.currentTarget as HTMLButtonElement).style.boxShadow =
+                            "0 6px 14px rgba(194,65,12,0.35)";
                         }}
                       >
                         {updatingId === activeCompliment.id
                           ? "Recording your thanks..."
-                          : "Thank you, Foximo"}
+                          : "🧡 Thank you, Foximo"}
                       </button>
 
                       <div
@@ -581,11 +749,27 @@ export default function Home() {
                         {thankReply}
                       </p>
                     )}
+
+                    {/* Kis Foximo a box jobb szélén */}
+                    <img
+                      src="/foximo_box.png"
+                      alt="Foximo the Courtier bowing"
+                      style={{
+                        position: "absolute",
+                        right: "0.5rem",
+                        bottom: "-2px", // stabilan alul
+                        width: "90px",
+                        height: "auto",
+                        pointerEvents: "none",
+                        transformOrigin: "bottom center",
+                        animation: "foxBow 2600ms ease-in-out infinite",
+                      }}
+                    />
                   </article>
                 </div>
               )}
 
-              {/* Request praise + Send praise + counter + name change */}
+              {/* Request praise + session counter + name change */}
               <div
                 style={{
                   textAlign: "center",
@@ -597,7 +781,7 @@ export default function Home() {
                   onClick={handleRequestPraise}
                   disabled={loading || compliments.length === 0}
                   style={{
-                    padding: "0.6rem 1rem",
+                    padding: "0.6rem 1.1rem",
                     borderRadius: "999px",
                     border: "none",
                     cursor: "pointer",
@@ -609,39 +793,27 @@ export default function Home() {
                     boxShadow: "0 6px 14px rgba(194,65,12,0.35)",
                     opacity:
                       loading || compliments.length === 0 ? 0.7 : 1,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.4rem",
+                  }}
+                  onMouseEnter={(e) => {
+                    Object.assign(
+                      (e.currentTarget as HTMLButtonElement).style,
+                      primaryButtonHover
+                    );
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.transform =
+                      "translateY(0) scale(1)";
+                    (e.currentTarget as HTMLButtonElement).style.boxShadow =
+                      "0 6px 14px rgba(194,65,12,0.35)";
                   }}
                 >
                   {sessionPraiseCount === 0
-                    ? "Request praise"
-                    : "Request more praise"}
+                    ? "🎁 Request praise"
+                    : "🎁 Request more praise"}
                 </button>
-
-                <div style={{ marginTop: "0.75rem" }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCopyFeedback(null);
-                      setShareError(null);
-                      setIsSendModalOpen(true);
-                    }}
-                    disabled={!activeCompliment}
-                    style={{
-                      padding: "0.45rem 0.9rem",
-                      borderRadius: "999px",
-                      border: "1px solid #4f46e5",
-                      cursor: activeCompliment
-                        ? "pointer"
-                        : "not-allowed",
-                      background: "white",
-                      color: "#4f46e5",
-                      fontSize: "0.9rem",
-                      fontWeight: 500,
-                      opacity: activeCompliment ? 1 : 0.6,
-                    }}
-                  >
-                    Send this praise to someone
-                  </button>
-                </div>
 
                 <div
                   style={{
@@ -650,29 +822,131 @@ export default function Home() {
                     color: "#6b7280",
                   }}
                 >
-                  Praised <strong>{sessionPraiseCount}</strong> times
-                  this visit.
+                  Praised <strong>{sessionPraiseCount}</strong> times this
+                  visit.
                 </div>
 
                 <button
                   type="button"
                   onClick={handleChangeName}
                   style={{
-                    display: "inline-block",
-                    marginTop: "0.75rem",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.3rem",
+                    marginTop: "0.85rem",
                     fontSize: "0.85rem",
-                    color: "#4f46e5",
-                    textDecoration: "underline",
-                    background: "transparent",
-                    border: "none",
+                    color: "#4b5563",
+                    background: "#f9fafb",
+                    borderRadius: "999px",
+                    border: "1px solid #e5e7eb",
+                    padding: "0.35rem 0.75rem",
                     cursor: "pointer",
                   }}
                 >
-                  Change name / title
+                  <span style={{ fontSize: "0.9rem" }}>🖋️</span>
+                  <span>Change name / title</span>
                 </button>
               </div>
             </section>
           )}
+
+          {/* Globális alsó gombsor: Ko-fi, Top 10, Send praise */}
+          <section
+            style={{
+              marginTop: "2rem",
+              paddingTop: "1.25rem",
+              borderTop: "1px solid #e5e7eb",
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "0.75rem",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            {/* Ko-fi gomb */}
+            <a
+              href="https://ko-fi.com/foximothecourtier"
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                padding: "0.55rem 1.1rem",
+                borderRadius: "999px",
+                border: "none",
+                cursor: "pointer",
+                background:
+                  "linear-gradient(135deg, #22c55e, #16a34a)",
+                color: "white",
+                fontSize: "0.9rem",
+                fontWeight: 600,
+                boxShadow: "0 6px 14px rgba(22,163,74,0.35)",
+                textDecoration: "none",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.4rem",
+              }}
+              onMouseEnter={(e) => {
+                Object.assign(
+                  (e.currentTarget as HTMLAnchorElement).style,
+                  primaryButtonHover
+                );
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLAnchorElement).style.transform =
+                  "translateY(0) scale(1)";
+                (e.currentTarget as HTMLAnchorElement).style.boxShadow =
+                  "0 6px 14px rgba(22,163,74,0.35)";
+              }}
+            >
+              🦊 Offer alms on Ko-fi
+            </a>
+
+            {/* Toplista gomb */}
+            <a
+              href="/top"
+              style={{
+                padding: "0.55rem 1.1rem",
+                borderRadius: "999px",
+                border: "1px solid #4f46e5",
+                background: "white",
+                color: "#4f46e5",
+                fontSize: "0.9rem",
+                fontWeight: 500,
+                textDecoration: "none",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.4rem",
+              }}
+            >
+              👑 View Foximo&apos;s royal Top 10
+            </a>
+
+            {/* Send praise gomb */}
+            <button
+              type="button"
+              onClick={() => {
+                setCopyFeedback(null);
+                setShareError(null);
+                setIsSendModalOpen(true);
+              }}
+              disabled={!activeCompliment}
+              style={{
+                padding: "0.55rem 1.1rem",
+                borderRadius: "999px",
+                border: "1px solid #4b5563",
+                cursor: activeCompliment ? "pointer" : "not-allowed",
+                background: "white",
+                color: "#111827",
+                fontSize: "0.9rem",
+                fontWeight: 500,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.4rem",
+                opacity: activeCompliment ? 1 : 0.6,
+              }}
+            >
+              📨 Send this praise to someone
+            </button>
+          </section>
         </div>
       </div>
 
@@ -682,6 +956,8 @@ export default function Home() {
           fontSize: "0.8rem",
           color: "#9ca3af",
           paddingBottom: "1.5rem",
+          position: "relative",
+          zIndex: 1,
         }}
       >
         Made with royal mischief by Foximo the Courtier 🦊👑
@@ -710,8 +986,9 @@ export default function Home() {
               borderRadius: "18px",
               background:
                 "radial-gradient(circle at top left, #fef3c7 0, #ffffff 45%, #f9fafb 100%)",
-              padding: "1.5rem 1.5rem 1.25rem",
+              padding: "1.6rem 1.5rem 1.25rem",
               boxShadow: "0 16px 40px rgba(15,23,42,0.45)",
+              boxSizing: "border-box",
             }}
           >
             <div
@@ -748,8 +1025,7 @@ export default function Home() {
                     color: "#6b7280",
                   }}
                 >
-                  Share Foximo&apos;s royal praise via your favourite
-                  messenger.
+                  Share Foximo&apos;s royal praise via your favourite messenger.
                 </p>
               </div>
             </div>
@@ -776,6 +1052,7 @@ export default function Home() {
                 border: "1px solid #d1d5db",
                 fontSize: "0.9rem",
                 marginBottom: "0.9rem",
+                boxSizing: "border-box",
               }}
             />
 
@@ -789,6 +1066,7 @@ export default function Home() {
                 border: "1px solid #facc15",
                 marginBottom: "0.9rem",
                 whiteSpace: "pre-wrap",
+                boxSizing: "border-box",
               }}
             >
               {buildShareText()}
@@ -815,7 +1093,7 @@ export default function Home() {
                     setCopyFeedback(
                       "Copied! Foximo politely suggests: paste this into Messenger, WhatsApp, or your favourite royal channel."
                     );
-                  } catch (err) {
+                  } catch {
                     setShareError(
                       "Could not copy to clipboard. Please try manually."
                     );
@@ -832,9 +1110,12 @@ export default function Home() {
                   fontSize: "0.9rem",
                   fontWeight: 500,
                   boxShadow: "0 6px 14px rgba(55,48,163,0.35)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.35rem",
                 }}
               >
-                Copy text
+                📋 Copy text
               </button>
 
               <button
@@ -849,16 +1130,15 @@ export default function Home() {
                       await navigator.share({
                         title: "A royal praise from Foximo",
                         text,
+                        url: SITE_URL,
                       });
                     } else {
                       setShareError(
                         "Your browser does not support direct sharing. Please use Copy instead."
                       );
                     }
-                  } catch (err) {
-                    setShareError(
-                      "Sharing was cancelled or failed."
-                    );
+                  } catch {
+                    setShareError("Sharing was cancelled or failed.");
                   }
                 }}
                 style={{
@@ -870,9 +1150,12 @@ export default function Home() {
                   color: "#111827",
                   fontSize: "0.9rem",
                   fontWeight: 500,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.35rem",
                 }}
               >
-                Share…
+                📤 Share…
               </button>
 
               <button
@@ -906,6 +1189,31 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* Globális animációk */}
+      <style jsx global>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        /* Foximo minimál meghajlás – stabil alul, csak picit meghajol */
+        @keyframes foxBow {
+          0%,
+          100% {
+            transform: rotate(0deg);
+          }
+          50% {
+            transform: rotate(-4deg);
+          }
+        }
+      `}</style>
     </main>
   );
 }
