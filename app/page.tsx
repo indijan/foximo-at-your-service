@@ -571,20 +571,20 @@ export default function Home() {
                   }}
                 >
                   <article
-                    key={`${activeCompliment.id}-${sessionPraiseCount}`}
-                    style={{
-                      position: "relative",
-                      borderRadius: "18px",
-                      border: "2px solid #fbbf24",
-                      padding: "1.35rem 1.25rem 1.8rem", // alul több hely a rókának
-                      paddingRight: "7rem", // hely a rókának jobb oldalt
-                      boxShadow: "0 14px 32px rgba(15,23,42,0.18)",
-                      background:
-                        "radial-gradient(circle at top left, #fef3c7 0, #ffffff 45%, #f9fafb 100%)",
-                      animation: "fadeInUp 380ms ease-out",
-                      overflow: "hidden",
-                    }}
-                  >
+                  	key={`${activeCompliment.id}-${sessionPraiseCount}`}
+                  	className="foximo-praise-card"
+                  	style={{
+                  		position: "relative",
+                  		borderRadius: "18px",
+                  		border: "2px solid #fbbf24",
+                  		padding: "1.35rem 1.25rem 1.8rem",
+                  		boxShadow: "0 14px 32px rgba(15,23,42,0.18)",
+                  		background:
+                  			"radial-gradient(circle at top left, #fef3c7 0, #ffffff 45%, #f9fafb 100%)",
+                  		animation: "fadeInUp 380ms ease-out",
+                  		overflow: "hidden",
+                  	}}
+                  	>
                     <div
                       style={{
                         position: "absolute",
@@ -663,79 +663,67 @@ export default function Home() {
                     </p>
 
                     <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: "0.75rem",
-                        marginTop: "0.25rem",
-                      }}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => handleThankYou(activeCompliment.id)}
-                        disabled={updatingId === activeCompliment.id}
-                        style={{
-                          flexShrink: 0,
-                          padding: "0.45rem 0.9rem",
-                          borderRadius: "999px",
-                          border: "none",
-                          cursor: "pointer",
-                          opacity:
-                            updatingId === activeCompliment.id ? 0.7 : 1,
-                          background:
-                            "linear-gradient(135deg, #f97316, #fb923c)",
-                          color: "white",
-                          fontSize: "0.9rem",
-                          fontWeight: 600,
-                          boxShadow: "0 6px 14px rgba(194,65,12,0.35)",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "0.35rem",
-                        }}
-                        onMouseEnter={(e) => {
-                          Object.assign(
-                            (e.currentTarget as HTMLButtonElement).style,
-                            primaryButtonHover
-                          );
-                        }}
-                        onMouseLeave={(e) => {
-                          (e.currentTarget as HTMLButtonElement).style.transform =
-                            "translateY(0) scale(1)";
-                          (e.currentTarget as HTMLButtonElement).style.boxShadow =
-                            "0 6px 14px rgba(194,65,12,0.35)";
-                        }}
-                      >
-                        {updatingId === activeCompliment.id
-                          ? "Recording your thanks..."
-                          : "🧡 Thank you, Foximo"}
-                      </button>
-
-                      <div
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "0.25rem",
-                          fontSize: "0.9rem",
-                          color: "#6b7280",
-                        }}
-                      >
-                        <span
-                          style={{
-                            display: "inline-flex",
-                            width: "22px",
-                            height: "22px",
-                            borderRadius: "999px",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            background: "#fee2e2",
-                          }}
-                        >
-                          ❤️
-                        </span>
-                        <span>{activeCompliment.thank_count}</span>
-                      </div>
-                    </div>
+  style={{
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "flex-start",
+    gap: "0.75rem",
+    marginTop: "0.25rem",
+  }}
+>
+  <button
+    type="button"
+    onClick={() => handleThankYou(activeCompliment.id)}
+    disabled={updatingId === activeCompliment.id}
+    style={{
+      flexShrink: 0,
+      padding: "0.45rem 0.9rem",
+      borderRadius: "999px",
+      border: "none",
+      cursor: "pointer",
+      opacity: updatingId === activeCompliment.id ? 0.7 : 1,
+      background: "linear-gradient(135deg, #f97316, #fb923c)",
+      color: "white",
+      fontSize: "0.9rem",
+      fontWeight: 600,
+      boxShadow: "0 6px 14px rgba(194,65,12,0.35)",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "0.4rem",
+    }}
+    onMouseEnter={(e) => {
+      Object.assign(
+        (e.currentTarget as HTMLButtonElement).style,
+        primaryButtonHover
+      );
+    }}
+    onMouseLeave={(e) => {
+      (e.currentTarget as HTMLButtonElement).style.transform =
+        "translateY(0) scale(1)";
+      (e.currentTarget as HTMLButtonElement).style.boxShadow =
+        "0 6px 14px rgba(194,65,12,0.35)";
+    }}
+  >
+    {updatingId === activeCompliment.id ? (
+      "Recording your thanks..."
+    ) : (
+      <>
+        Thank you, Foximo
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "0.25rem",
+            fontSize: "0.85rem",
+          }}
+        >
+          <span style={{ fontSize: "0.95rem" }}>❤️</span>
+          <span>{activeCompliment.thank_count}</span>
+        </span>
+      </>
+    )}
+  </button>
+</div>
 
                     {thankReply && (
                       <p
@@ -754,15 +742,10 @@ export default function Home() {
                     <img
                       src="/foximo_box.png"
                       alt="Foximo the Courtier bowing"
+                      className="foximo-box-fox"
                       style={{
-                        position: "absolute",
-                        right: "0.5rem",
-                        bottom: "-2px", // stabilan alul
-                        width: "90px",
-                        height: "auto",
-                        pointerEvents: "none",
-                        transformOrigin: "bottom center",
-                        animation: "foxBow 2600ms ease-in-out infinite",
+                      	pointerEvents: "none",
+                      	animation: "foxBow 2600ms ease-in-out infinite",
                       }}
                     />
                   </article>
@@ -1212,6 +1195,32 @@ export default function Home() {
             transform: rotate(-4deg);
           }
         }
+        /* Praise card: alapban jobbra nagy hely Foximónak */
+  .foximo-praise-card {
+    padding-right: 7rem;
+  }
+
+  .foximo-box-fox {
+    position: absolute;
+    right: 0.5rem;
+    bottom: -2px;
+    width: 90px;
+    height: auto;
+    transform-origin: bottom center;
+  }
+
+  @media (max-width: 640px) {
+    .foximo-praise-card {
+      padding-right: 1.25rem;
+    }
+
+    .foximo-box-fox {
+      position: static;
+      display: block;
+      margin: 0.5rem auto 0;
+      width: 72px;
+    }
+  }
       `}</style>
     </main>
   );
