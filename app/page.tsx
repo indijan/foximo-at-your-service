@@ -972,8 +972,26 @@ export default function Home() {
               padding: "1.6rem 1.5rem 1.25rem",
               boxShadow: "0 16px 40px rgba(15,23,42,0.45)",
               boxSizing: "border-box",
+              position: "relative", // 🔸 EZ AZ ÚJ
             }}
           >
+          <button
+  			type="button"
+  			onClick={() => setIsSendModalOpen(false)}
+  			style={{
+  				position: "absolute",
+  				top: "0.6rem",
+  				right: "0.7rem",
+  				border: "none",
+  				background: "transparent",
+  				fontSize: "1.1rem",
+  				cursor: "pointer",
+  				color: "#6b7280",
+  			}}
+  			aria-label="Close"
+  			>
+  			✕
+  		</button>
             <div
               style={{
                 display: "flex",
