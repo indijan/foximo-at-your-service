@@ -1107,12 +1107,11 @@ export default function Home() {
     setCopyFeedback(null);
     setShareError(null);
     try {
-      const base = buildShareText();
-      const fullText = `${base}\n\nMore courtly compliments from Foximo:\n${SITE_URL}`;
+      const text = buildShareText(); // 👈 csak ezt használjuk, nincs extra link
 
       if (navigator.share) {
         await navigator.share({
-          text: fullText,   // 🔸 csak text, a link is benne a szövegben
+          text,
         });
       } else {
         setShareError(
@@ -1123,38 +1122,22 @@ export default function Home() {
       setShareError("Sharing was cancelled or failed.");
     }
   }}
-                style={{
-                  padding: "0.5rem 0.9rem",
-                  borderRadius: "999px",
-                  border: "1px solid #4b5563",
-                  cursor: "pointer",
-                  background: "white",
-                  color: "#111827",
-                  fontSize: "0.9rem",
-                  fontWeight: 500,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "0.35rem",
-                }}
-              >
-                📤 Share…
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setIsSendModalOpen(false)}
-                style={{
-                  padding: "0.5rem 0.75rem",
-                  borderRadius: "999px",
-                  border: "none",
-                  background: "transparent",
-                  color: "#6b7280",
-                  fontSize: "0.85rem",
-                  cursor: "pointer",
-                }}
-              >
-                Close
-              </button>
+  style={{
+    padding: "0.5rem 0.9rem",
+    borderRadius: "999px",
+    border: "1px solid #4b5563",
+    cursor: "pointer",
+    background: "white",
+    color: "#111827",
+    fontSize: "0.9rem",
+    fontWeight: 500,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "0.35rem",
+  }}
+>
+  📤 Share…
+</button>
             </div>
 
             {(copyFeedback || shareError) && (
