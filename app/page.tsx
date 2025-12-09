@@ -1119,28 +1119,27 @@ export default function Home() {
               </button>
 
               <button
-                type="button"
-                onClick={async () => {
-                  setCopyFeedback(null);
-                  setShareError(null);
-                  try {
-                    const text = buildShareText();
+  type="button"
+  onClick={async () => {
+    setCopyFeedback(null);
+    setShareError(null);
+    try {
+      const base = buildShareText();
+      const fullText = `${base}\n\nMore courtly compliments from Foximo:\n${SITE_URL}`;
 
-                    if (navigator.share) {
-                      await navigator.share({
-                        title: "A royal praise from Foximo",
-                        text,
-                        url: SITE_URL,
-                      });
-                    } else {
-                      setShareError(
-                        "Your browser does not support direct sharing. Please use Copy instead."
-                      );
-                    }
-                  } catch {
-                    setShareError("Sharing was cancelled or failed.");
-                  }
-                }}
+      if (navigator.share) {
+        await navigator.share({
+          text: fullText,   // 🔸 csak text, a link is benne a szövegben
+        });
+      } else {
+        setShareError(
+          "Your browser does not support direct sharing. Please use Copy instead."
+        );
+      }
+    } catch {
+      setShareError("Sharing was cancelled or failed.");
+    }
+  }}
                 style={{
                   padding: "0.5rem 0.9rem",
                   borderRadius: "999px",
